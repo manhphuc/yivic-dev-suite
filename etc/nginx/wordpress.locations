@@ -1,0 +1,36 @@
+location / {
+    # This is cool because no php is touched for static content.
+    # include the "?$args" part so non-default permalinks doesn't break when using query string
+    try_files $uri $uri/ /index.php?$args;
+}
+
+location = /favicon.ico {
+    log_not_found off;
+    access_log off;
+    expires max;
+}
+
+location = /robots.txt {
+    allow all;
+    log_not_found off;
+    access_log off;
+}
+
+location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+    expires max;
+    access_log off;
+    log_not_found off;
+}
+
+# Deny access to any files with a .php extension in the uploads directory
+# Works in sub-directory installs and also in multisite network
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~* /(?:uploads|files)/.*\.php$ {
+    deny all;
+}
+
+# Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac) excepted .well-known directory.
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~ /\.(?!well-known\/) {
+    deny all;
+}

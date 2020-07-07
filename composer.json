@@ -1,0 +1,15 @@
+{
+  "name": "yivic/yivic-dev-suite",
+  "description": "Development Suite used for Yivic. We shared it to all",
+  "type": "dev-suite",
+  "authors": [
+    {
+      "name": "Phuc Nguyen",
+      "email": "manhphucofficial@gmail.com"
+    },
+    {
+      "name": "Yivic Team",
+      "email": "contact@yivic.com"
+    }
+  ]
+}
