@@ -1,4 +1,4 @@
-FROM manhphuc/php:latest-fpm
+FROM manhphucofficial/php:latest-fpm
 
 RUN apt-get update -y
 

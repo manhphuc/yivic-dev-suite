@@ -1,4 +1,4 @@
-FROM manhphuc/php:7.2-cli
+FROM manhphucofficial/php:7.2-cli
 
 RUN apt-get update -y
 
