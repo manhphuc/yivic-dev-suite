@@ -1,4 +1,0 @@
-*.conf
-*.ini
-!*.example
-!.gitignore
