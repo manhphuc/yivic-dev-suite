@@ -22,9 +22,8 @@ fastcgi_busy_buffers_size 256k;
 fastcgi_temp_file_write_size 256k;
 fastcgi_max_temp_file_size 0;
 
-# Work as a global variable, useful when you change php-fpm instance, e.g `set $php_fpm_document_root $global_php_document_root/path/to/your/document/root;`
 map $host $global_php_document_root {
-  default /Users/manhphuc/workspace/www;
+  default /var/www/html;
 }
 
 upstream docker_php {
@@ -32,7 +31,7 @@ upstream docker_php {
 }
 
 upstream backend_php {
-    server host.docker.internal:9000;
+    server php_latest_fpm:9000;
 }
 
 server {
