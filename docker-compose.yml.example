@@ -4,10 +4,7 @@ networks:
         name: {{DEV_NAMESPACE}}_default
 services:
     nginx_main:
-        build:
-            args:
-                NGINX_VERSION: ${NGINX_VERSION}
-            context: "${DEV_SUITE_BASE}/build/nginx"
+        image: nginx:${NGINX_VERSION}-alpine
         container_name: {{DEV_NAMESPACE}}_nginx_main
         volumes:
             - "./shared:/shared"
@@ -22,163 +19,105 @@ services:
             NGINX_HOST:
         networks:
             - {{DEV_NAMESPACE}}
-        depends_on:
-            - php72_fpm
     php72_fpm:
-        build:
-            context: "${DEV_SUITE_BASE}/build/php72-fpm"
+        image: manhphucofficial/php:7.2-fpm
         container_name: {{DEV_NAMESPACE}}_php72_fpm
         volumes:
             - "./shared:/shared"
             - "${WWW_DIR}:/var/www/html"
-            - "./build/php72-fpm/php-custom.ini:/etc/php/7.2/fpm/conf.d/php-custom.ini"
+            - "./etc/php72/php-custom.ini:/etc/php/7.2/fpm/conf.d/php-custom.ini"
         environment:
-            - PHP_UPLOAD_MAX_FILEZISE
-            - PHP_POST_MAX_SIZE
-            - PHP_MEMORY_LIMIT
-            - PHP_MAX_EXECUTION_TIME
-            - PHP_MAX_INPUT_TIME
+            - PHP_UPLOAD_MAX_FILEZISE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=128M
+            - PHP_MAX_EXECUTION_TIME=120
+            - PHP_MAX_INPUT_TIME=90
         networks:
             - {{DEV_NAMESPACE}}
-    php72_cli:
-        build:
-            context: "${DEV_SUITE_BASE}/build/php72-cli"
-        container_name: {{DEV_NAMESPACE}}_php72_cli
-        networks:
-            - {{DEV_NAMESPACE}}
-#    php_latest_fpm:
-#        build:
-#            context: "${DEV_SUITE_BASE}/build/php-latest-fpm"
-#        container_name: {{DEV_NAMESPACE}}_php74_fpm
-#        volumes:
-#            - "./shared:/shared"
-#            - "${WWW_DIR}:/var/www/html"
-#        environment:
-#            - PHP_UPLOAD_MAX_FILEZISE
-#            - PHP_POST_MAX_SIZE
-#            - PHP_MEMORY_LIMIT
-#            - PHP_MAX_EXECUTION_TIME
-#            - PHP_MAX_INPUT_TIME
-#        networks:
-#            - {{DEV_NAMESPACE}}
-#    php_latest_cli:
-#        build:
-#            context: "${DEV_SUITE_BASE}/build/php-latest-cli"
-#        container_name: {{DEV_NAMESPACE}}_php_latest_cli
-#        networks:
-#            - {{DEV_NAMESPACE}}
-    mysql57:
-        build:
-            context: "${DEV_SUITE_BASE}/build/mysql57"
-        container_name: {{DEV_NAMESPACE}}_mysql57
-        environment:
-            - MYSQL_DATABASE=${MYSQL57_DATABASE}
-            - MYSQL_ROOT_PASSWORD=${MYSQL57_ROOT_PASSWORD}
-            - MYSQL_USER=${MYSQL57_USER}
-            - MYSQL_PASSWORD=${MYSQL57_PASSWORD}
+    # php72_cli:
+    #     image: manhphucofficial/php:7.2-cli
+    #     container_name: {{DEV_NAMESPACE}}_php72_cli
+    php_latest_fpm:
+        image: manhphucofficial/php:latest-fpm
+        container_name: {{DEV_NAMESPACE}}_php_latest_fpm
         volumes:
             - "./shared:/shared"
-            - type: volume
-              source: mysql57-data
-              target: /var/lib/mysql
-        ports:
-            - "${MYSQL57_EXPOSING_PORT}:3306"
+            - "${WWW_DIR}:/var/www/html"
+            - "./etc/php-latest/php-custom.ini:/etc/php/7.4/fpm/conf.d/php-custom.ini"
+        environment:
+            - PHP_UPLOAD_MAX_FILEZISE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=128M
+            - PHP_MAX_EXECUTION_TIME=120
+            - PHP_MAX_INPUT_TIME=90
         networks:
             - {{DEV_NAMESPACE}}
-#    mysql57_slave:
-#        build:
-#            context: "${DEV_SUITE_BASE}/build/mysql57"
-#        container_name: {{DEV_NAMESPACE}}_mysql57_slave
-#        environment:
-#            - MYSQL_DATABASE=${MYSQL57_DATABASE}
-#            - MYSQL_ROOT_PASSWORD=${MYSQL57_ROOT_PASSWORD}
-#            - MYSQL_USER=${MYSQL57_SLAVE_USER}
-#            - MYSQL_PASSWORD=${MYSQL57_SLAVE_PASSWORD}
-#        volumes:
-#            - "./shared:/shared"
-#        ports:
-#            - "${MYSQL57_SLAVE_EXPOSING_PORT}:3306"
-#        networks:
-#            - {{DEV_NAMESPACE}}
-#    mysql80:
-#        build:
-#            context: "${DEV_SUITE_BASE}/build/mysql80"
-#        container_name: {{DEV_NAMESPACE}}_mysql80
-#        environment:
-#            - MYSQL_DATABASE=${MYSQL80_DATABASE}
-#            - MYSQL_ROOT_PASSWORD=${MYSQL80_ROOT_PASSWORD}
-#            - MYSQL_USER=${MYSQL80_USER}
-#            - MYSQL_PASSWORD=${MYSQL80_PASSWORD}
-#        volumes:
-#            - "./shared:/shared"
-#            - type: volume
-#              source: mysql80-data
-#              target: /var/lib/mysql
-#        ports:
-#            - "${MYSQL80_EXPOSING_PORT}:3306"
-#        networks:
-#            - {{DEV_NAMESPACE}}
-#    mysql80_slave:
-#        build:
-#            context: "${DEV_SUITE_BASE}/build/mysql80"
-#        container_name: {{DEV_NAMESPACE}}_mysql80_slave
-#        environment:
-#            - MYSQL_DATABASE=${MYSQL80_DATABASE}
-#            - MYSQL_ROOT_PASSWORD=${MYSQL80_ROOT_PASSWORD}
-#            - MYSQL_USER=${MYSQL80_USER}
-#            - MYSQL_PASSWORD=${MYSQL80_PASSWORD}
-#        volumes:
-#            - "./shared:/shared"
-#        ports:
-#            - "${MYSQL80_SLAVE_EXPOSING_PORT}:3306"
-#        networks:
-#            - {{DEV_NAMESPACE}}
+    # php_latest_cli:
+    #     image: manhphucofficial/php:latest-cli
+    #     container_name: {{DEV_NAMESPACE}}_php_latest_cli
+    mariadb:
+        image: mariadb
+        environment:
+            - MYSQL_ROOT_PASSWORD
+        volumes:
+            # - ./mariadb-init:/docker-entrypoint-initdb.d # Place init .sql file(s) here.
+            # - /path/to/mariadb/data/on/host:/var/lib/mysql # I want to manage volumes manually.
+            - type: volume
+              source: mariadb-data
+              target: /var/lib/mysql
+        networks:
+            - {{DEV_NAMESPACE}}
+    adminer:
+        image: adminer:4.7.7
+        volumes:
+            - "./etc/adminer/0-upload_large_dumps.ini:/usr/local/etc/php/conf.d/0-upload_large_dumps.ini"
+        ports:
+            - ${ADMINIER_WEB_EXPOSING_PORT}:8080
+        environment:
+            ADMINER_DESIGN: 'nette'
+            # # For PostgreSQL:
+            # ADMINER_DEFAULT_DB_DRIVER: pgsql
+            # ADMINER_DEFAULT_DB_HOST: $DB_HOST
+            # ADMINER_DEFAULT_DB_NAME: $DB_NAME
+        networks:
+            - {{DEV_NAMESPACE}}
     phpmyadmin:
-        build:
-            context: "./build/phpmyadmin"
-        container_name: {{DEV_NAMESPACE}}_phpmyadmin
+        image: phpmyadmin/phpmyadmin
         ports:
             - "${PHPMYADMIN_WEB_EXPOSING_PORT}:80"
         environment:
             - PMA_ARBITRARY=1
-            - UPLOAD_LIMIT=512MB
+            - PHP_UPLOAD_MAX_FILESIZE=1G
+            - PHP_POST_MAX_SIZE=1G
+            - PHP_MEMORY_LIMIT=0
+            - PHPMYADMIN_ALLOW_ARBITRARY_SERVER=yes
+            - PHP_MAX_INPUT_VARS=1G
+            - UPLOAD_LIMIT=1G
         networks:
             - {{DEV_NAMESPACE}}
-#    phpmyadmin_slave:
-#        build:
-#            context: "./build/phpmyadmin"
-#        container_name: {{DEV_NAMESPACE}}_phpmyadmin_slave
-#        ports:
-#            - "${PHPMYADMIN_SLAVE_WEB_EXPOSING_PORT}:80"
-#        environment:
-#            - PMA_ARBITRARY=1
-#            - UPLOAD_LIMIT=512MB
-#        networks:
-#            - {{DEV_NAMESPACE}}
-    ## For SSDB (redis like)
-#    ssdb:
-#        build:
-#            context: "./build/ssdb"
-#        networks:
-#            - {{DEV_NAMESPACE}}
-#    phpssdbadmin:
-#        build:
-#            context: "./build/phpssdbadmin"
-#        ports:
-#            - "${PHPSSDBADMIN_WEB_EXPOSING_PORT}:80"
-#        networks:
-#            - {{DEV_NAMESPACE}}
-    ## For Redis
-    redis:
+    ssdb:
+        image: benyoo/ssdb
+        volumes:
+            - "./etc/ssdb/ssdb.conf:/etc/ssdb.conf"
+        networks:
+            - {{DEV_NAMESPACE}}
+    phpssdbadmin:
         build:
-            context: "./build/redis"
+            context: "./build/phpssdbadmin"
+        ports:
+            - "${PHPSSDBADMIN_WEB_EXPOSING_PORT}:80"
+        networks:
+            - {{DEV_NAMESPACE}}
+    redis:
+        image: redis
         ports:
             - "${REDIS_EXPOSING_PORT}:6379"
+        volumes:
+            - "./etc/redis/redis.conf:/usr/local/etc/redis/redis.conf"
         networks:
             - {{DEV_NAMESPACE}}
     phpredisadmin:
-        build:
-            context: "./build/phpredisadmin"
+        image: erikdubbelboer/phpredisadmin
         ports:
             - "${PHPREDISADMIN_WEB_EXPOSING_PORT}:80"
         links:
@@ -191,7 +130,6 @@ services:
         networks:
             - {{DEV_NAMESPACE}}
 volumes:
-    mysql57-data:
+    mariadb-data:
         driver: local
-    mysql80-data:
-        driver: local
+

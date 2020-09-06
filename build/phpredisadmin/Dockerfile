@@ -1,1 +1,0 @@
-FROM erikdubbelboer/phpredisadmin
