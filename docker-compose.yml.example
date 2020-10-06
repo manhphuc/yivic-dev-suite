@@ -129,7 +129,24 @@ services:
             - REDIS_1_PORT=6379
         networks:
             - {{DEV_NAMESPACE}}
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
+        environment:
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - es-data:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+        networks:
+            - {{DEV_NAMESPACE}}
 volumes:
     mariadb-data:
         driver: local
-
+    es-data:
+        driver: local
