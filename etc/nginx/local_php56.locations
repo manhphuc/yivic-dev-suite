@@ -1,0 +1,12 @@
+location ~ \.php$ {
+    add_header X_PHP_FPM_DOCUMENT_ROOT $php_fpm_document_root;
+    add_header X_PHP_SCRIPT_NAME $fastcgi_script_name;
+    add_header X_PATH_INFO $fastcgi_path_info;
+    try_files $uri =404;
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_pass local_php56;
+    fastcgi_index index.php;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $php_fpm_document_root$fastcgi_script_name;
+    fastcgi_param PATH_INFO $fastcgi_path_info;
+}

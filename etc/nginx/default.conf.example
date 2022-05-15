@@ -26,8 +26,24 @@ map $host $global_php_document_root {
   default /var/www/html;
 }
 
+map $host $global_local_php_document_root {
+  default /Users/<username>/workspace/www;
+}
+
 upstream docker_php {
     server php72_fpm:9000;
+}
+
+upstream local_php56 {
+    server host.docker.internal:9056;
+}
+
+upstream local_php74 {
+    server host.docker.internal:9074;
+}
+
+upstream local_php80 {
+    server host.docker.internal:9080;
 }
 
 upstream backend_php {
