@@ -1,0 +1,56 @@
+# ============================================================================
+# PHP/WordPress Application Template
+# ============================================================================
+# File: etc/nginx/sites-enabled/php-site.conf.example
+#
+# Setup:
+# 1. Copy this file: cp php-site.conf.example your-site.conf
+# 2. Replace "your-site" with your actual site name throughout this file
+# 3. Replace "your-domain.com" with your actual domain
+# 4. Create project folder: mkdir -p ../www/your-site
+# 5. Add to /etc/hosts: 127.0.0.1 your-domain.com
+# 6. Reload nginx: docker-compose restart nginx_main
+# ============================================================================
+
+# HTTP Server
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    index index.php index.html;
+    error_log  /var/log/nginx/your-domain.com-error.log;
+    access_log /var/log/nginx/your-domain.com-access.log;
+    root /var/www/html/your-site;
+    set $php_fpm_document_root $global_php_document_root/your-site;
+
+    # Include location rules
+    # For WordPress sites, use wordpress.locations
+    # For regular PHP sites, use php.locations
+    include conf.d/php.locations;
+    # include conf.d/wordpress.locations;  # Uncomment for WordPress
+}
+
+# HTTPS Server
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+    fastcgi_param HTTPS on;
+
+    # SSL Configuration
+    ssl_certificate     /etc/ssl/dev-srv.org.bundle.crt;
+    ssl_certificate_key /etc/ssl/dev-srv.org.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    index index.php index.html;
+    error_log  /var/log/nginx/your-domain.com-error.log;
+    access_log /var/log/nginx/your-domain.com-access.log;
+    root /var/www/html/your-site;
+    set $php_fpm_document_root $global_php_document_root/your-site;
+
+    # Include location rules
+    # For WordPress sites, use wordpress.locations
+    # For regular PHP sites, use php.locations
+    include conf.d/php.locations;
+    # include conf.d/wordpress.locations;  # Uncomment for WordPress
+}

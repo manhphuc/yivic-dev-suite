@@ -1,0 +1,54 @@
+# ============================================================================
+# Python Application Template
+# ============================================================================
+# File: etc/nginx/sites-enabled/python-site.conf.example
+#
+# Setup:
+# 1. Copy this file: cp python-site.conf.example your-app.conf
+# 2. Replace "your-app" with your actual app name throughout this file
+# 3. Replace "your.domain.com" with your actual domain
+# 4. Create project folder: mkdir -p ../www/your-app
+# 5. Add to /etc/hosts: 127.0.0.1 your.domain.com
+# 6. Choose Python version below (python310_web | python311_web | python312_web)
+# 7. Reload nginx: docker-compose restart nginx_main
+# 8. Start app: ./scripts/python/autostart-python-apps.sh dev
+# ============================================================================
+
+# HTTP -> HTTPS redirect
+server {
+    listen 80;
+    server_name your.domain.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl;
+    server_name your.domain.com;
+    fastcgi_param HTTPS on;
+
+    # SSL Configuration
+    ssl_certificate     /etc/ssl/dev-srv.org.bundle.crt;
+    ssl_certificate_key /etc/ssl/dev-srv.org.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Logging
+    error_log  /var/log/nginx/your.domain.com-error.log;
+    access_log /var/log/nginx/your.domain.com-access.log;
+
+    # Document root (for static files if needed)
+    root /var/www/html/your-app;
+
+    # Set subdomain variable for python.locations
+    set $subdomain your-app;
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PYTHON VERSION - Change this to use different Python version
+    # Options: python310_web | python311_web | python312_web | python_latest_web
+    # ═══════════════════════════════════════════════════════════════════
+    set $python_version "python311_web";
+
+    # Include Python proxy rules
+    include conf.d/python.locations;
+}

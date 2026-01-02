@@ -1,6 +1,19 @@
-# Nginx configuration
+# ============================================================================
+# Nginx Main Configuration (EXAMPLE)
+# ============================================================================
+# File: etc/nginx/default.conf.example
+#
+# This is a template for the main nginx configuration file.
+# Copy this to default.conf and customize for your environment:
+#   cp default.conf.example default.conf
+#
+# Important: Update the path in line 36 to match your local system!
+# ============================================================================
 
-#Adjust client timeouts
+# Docker DNS resolver for lazy resolution
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+# Adjust client timeouts
 client_max_body_size 0;
 client_body_buffer_size 1k;
 client_header_buffer_size 1k;
@@ -12,7 +25,7 @@ tcp_nodelay on;
 large_client_header_buffers 4 32k;
 server_names_hash_bucket_size 128;
 
-#Adjust output buffers
+# Adjust output buffers
 fastcgi_buffers 256 48k;
 fastcgi_buffer_size 48k;
 fastcgi_connect_timeout 360;
@@ -22,18 +35,30 @@ fastcgi_busy_buffers_size 256k;
 fastcgi_temp_file_write_size 256k;
 fastcgi_max_temp_file_size 0;
 
+# Document root mapping
 map $host $global_php_document_root {
-  default /var/www/html;
+    default /var/www/html;
 }
 
 map $host $global_local_php_document_root {
-  default /Users/<username>/workspace/www;
+    # ⚠️ IMPORTANT: Change <username> to your actual username!
+    # Example: /Users/manhphucofficial/workspace/www
+    default /Users/<username>/workspace/www;
 }
+
+# ============================================================================
+# PHP Upstreams
+# ============================================================================
 
 upstream docker_php {
-    server php72_fpm:9000;
+    server php82_web:9000;
 }
 
+upstream backend_php {
+    server php_latest_fpm:9000;
+}
+
+# Local PHP upstreams (for host machine PHP installations)
 upstream local_php56 {
     server host.docker.internal:9056;
 }
@@ -46,63 +71,61 @@ upstream local_php80 {
     server host.docker.internal:9080;
 }
 
-upstream backend_php {
-    server php_latest_fpm:9000;
-}
+# ============================================================================
+# HTTP -> HTTPS Redirect
+# ============================================================================
 
+# HTTP redirect to HTTPS for *.dev-srv.org
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
-
-    index index.php index.html;
-    error_log  /var/log/nginx/error.log;
-    access_log /var/log/nginx/access.log;
-    root /var/www/html;
-    set $php_fpm_document_root $global_php_document_root;
-
-    location / {
-        autoindex on;
-    }
-
-    location ~ \.php$ {
-        try_files $uri =404;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass backend_php;
-        fastcgi_index index.php;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $php_fpm_document_root$fastcgi_script_name;
-        fastcgi_param PATH_INFO $fastcgi_path_info;
-    }
+    server_name ~^(?<subdomain>.+)\.dev-srv\.org$;
+    return 301 https://$host$request_uri;
 }
 
+# ============================================================================
+# Default HTTPS Server Block
+# ============================================================================
+
+# HTTPS block for wildcard *.dev-srv.org
 server {
-    listen 443 ssl;
-    server_name _;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name ~^(?<subdomain>.+)\.dev-srv\.org$;
     fastcgi_param HTTPS on;
 
-    ssl_certificate /etc/ssl/ca.pem;
-    ssl_certificate_key /etc/ssl/ca-key.pem;
-    ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
+    # SSL Configuration
+    ssl_certificate     /etc/ssl/dev-srv.org.bundle.crt;
+    ssl_certificate_key /etc/ssl/dev-srv.org.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Dynamic root/log per subdomain
+    root /var/www/html/$subdomain;
+    set $php_fpm_document_root $global_php_document_root/$subdomain;
 
     index index.php index.html;
-    error_log  /var/log/nginx/error.log;
-    access_log /var/log/nginx/access.log;
-    root /var/www/html;
-    set $php_fpm_document_root $global_php_document_root;
 
+    # Logging
+    error_log  /var/log/nginx/$subdomain-error.log;
+    access_log /var/log/nginx/$subdomain-access.log;
+
+    # Debug headers (optional - can be removed in production)
     add_header X-SCRIPT_FILENAME SCRIPT_FILENAME;
     add_header X-fastcgi_script_name $fastcgi_script_name;
     add_header X-php_fpm_document_root $php_fpm_document_root;
 
+    # Default location - serve static files
     location / {
         autoindex on;
+        try_files $uri $uri/ =404;
     }
 
+    # PHP handler
     location ~ \.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass backend_php;
+        fastcgi_pass docker_php;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $php_fpm_document_root$fastcgi_script_name;
@@ -110,4 +133,8 @@ server {
     }
 }
 
+# ============================================================================
+# Include Custom Sites
+# ============================================================================
+# Custom site configurations (PHP, Python, etc.) are loaded from here
 include /etc/nginx/conf.d/sites-enabled/*.conf;
