@@ -7,35 +7,50 @@
 # Copy this to default.conf and customize for your environment:
 #   cp default.conf.example default.conf
 #
-# Important: Update the path in line 36 to match your local system!
+# Important: Update the path in line 50 to match your local system!
 # ============================================================================
 
 # Docker DNS resolver for lazy resolution
 resolver 127.0.0.11 valid=10s ipv6=off;
 
-# Adjust client timeouts
-client_max_body_size 0;
+# ==============================================================================
+# Global Client Limits / Timeouts (Single Source of Truth)
+# ==============================================================================
+# Professional: set a clear max upload size instead of unlimited (0).
+# Increase if you need bigger imports (e.g., WordPress All-in-One Migration).
+client_max_body_size 256m;
+
 client_body_buffer_size 1k;
 client_header_buffer_size 1k;
-client_body_timeout 1200;
-client_header_timeout 600;
-send_timeout 60;
+
+# Long operations (WordPress import/extract, large uploads)
+client_body_timeout 1200s;
+client_header_timeout 600s;
+send_timeout 600s;
+
 tcp_nopush on;
 tcp_nodelay on;
 large_client_header_buffers 4 32k;
 server_names_hash_bucket_size 128;
 
-# Adjust output buffers
+# ==============================================================================
+# Global FastCGI Buffers / Timeouts (Single Source of Truth)
+# ==============================================================================
 fastcgi_buffers 256 48k;
 fastcgi_buffer_size 48k;
-fastcgi_connect_timeout 360;
-fastcgi_send_timeout 360;
-fastcgi_read_timeout 360;
+
+# Keep connect short, but allow long read/send for imports
+fastcgi_connect_timeout 60s;
+fastcgi_send_timeout 900s;
+fastcgi_read_timeout 900s;
+
 fastcgi_busy_buffers_size 256k;
 fastcgi_temp_file_write_size 256k;
 fastcgi_max_temp_file_size 0;
 
-# Document root mapping
+# ==============================================================================
+# Document Root Mapping
+# ==============================================================================
 map $host $global_php_document_root {
     default /var/www/html;
 }
@@ -46,10 +61,9 @@ map $host $global_local_php_document_root {
     default /Users/<username>/workspace/www;
 }
 
-# ============================================================================
+# ==============================================================================
 # PHP Upstreams
-# ============================================================================
-
+# ==============================================================================
 upstream docker_php {
     server php82_web:9000;
 }
@@ -71,10 +85,9 @@ upstream local_php80 {
     server host.docker.internal:9080;
 }
 
-# ============================================================================
+# ==============================================================================
 # HTTP -> HTTPS Redirect
-# ============================================================================
-
+# ==============================================================================
 # HTTP redirect to HTTPS for *.dev-srv.org
 server {
     listen 80 default_server;
@@ -83,10 +96,9 @@ server {
     return 301 https://$host$request_uri;
 }
 
-# ============================================================================
+# ==============================================================================
 # Default HTTPS Server Block
-# ============================================================================
-
+# ==============================================================================
 # HTTPS block for wildcard *.dev-srv.org
 server {
     listen 443 ssl default_server;
@@ -133,8 +145,8 @@ server {
     }
 }
 
-# ============================================================================
+# ==============================================================================
 # Include Custom Sites
-# ============================================================================
+# ==============================================================================
 # Custom site configurations (PHP, Python, etc.) are loaded from here
 include /etc/nginx/conf.d/sites-enabled/*.conf;
