@@ -17,7 +17,7 @@ resolver 127.0.0.11 valid=10s ipv6=off;
 # Global Client Limits / Timeouts (Single Source of Truth)
 # ==============================================================================
 # Professional: set a clear max upload size instead of unlimited (0).
-# Increase if you need bigger imports (e.g., WordPress All-in-One Migration).
+# Increase if you need bigger imports (e.g., large database/media files).
 client_max_body_size 256m;
 
 client_body_buffer_size 1k;
