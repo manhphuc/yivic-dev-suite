@@ -3,8 +3,11 @@ networks:
     {{DEV_NAMESPACE}}:
         name: {{DEV_NAMESPACE}}_default
 services:
+    # ============================================================================
+    # Nginx Services
+    # ============================================================================
     nginx_main:
-        image: nginx:${NGINX_VERSION}-alpine
+        image: manhphucofficial:nginx:${NGINX_VERSION}-alpine-custom
         container_name: {{DEV_NAMESPACE}}_nginx_main
         volumes:
             - "./shared:/shared"
@@ -16,9 +19,12 @@ services:
             - "${NGINX_HTTP_EXPOSING_PORT}:80"
             - "${NGINX_HTTPS_EXPOSING_PORT}:443"
         environment:
-            NGINX_HOST:
+            NGINX_HOST: ${NGINX_HOST}
         networks:
             - {{DEV_NAMESPACE}}
+    # ============================================================================
+    # PHP Services
+    # ============================================================================
     php72_fpm:
         image: manhphucofficial/php:7.2-fpm
         container_name: {{DEV_NAMESPACE}}_php72_fpm
@@ -37,6 +43,24 @@ services:
     # php72_cli:
     #     image: manhphucofficial/php:7.2-cli
     #     container_name: {{DEV_NAMESPACE}}_php72_cli
+
+    php82_web:
+        image: manhphucofficial/php82_web
+        container_name: ${DEV_NAMESPACE}_php82_web
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "./etc/php82/php-custom.ini:/etc/php/8.2/fpm/conf.d/php-custom.ini"
+            - "./etc/ssl/dev-srv.org.key:/etc/nginx/certs/dev-srv.org.key"
+            - "./etc/ssl/dev-srv.org.bundle.crt:/etc/nginx/certs/dev-srv.org.crt"
+        environment:
+            - PHP_UPLOAD_MAX_FILEZISE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=128M
+            - PHP_MAX_EXECUTION_TIME=120
+            - PHP_MAX_INPUT_TIME=90
+        networks:
+            - {{DEV_NAMESPACE}}
     php_latest_fpm:
         image: manhphucofficial/php:latest-fpm
         container_name: {{DEV_NAMESPACE}}_php_latest_fpm
@@ -44,6 +68,8 @@ services:
             - "./shared:/shared"
             - "${WWW_DIR}:/var/www/html"
             - "./etc/php-latest/php-custom.ini:/etc/php/7.4/fpm/conf.d/php-custom.ini"
+            - "./etc/ssl/dev-srv.org.key:/etc/nginx/certs/dev-srv.org.key"
+            - "./etc/ssl/dev-srv.org.bundle.crt:/etc/nginx/certs/dev-srv.org.crt"
         environment:
             - PHP_UPLOAD_MAX_FILEZISE=256M
             - PHP_POST_MAX_SIZE=256M
@@ -55,13 +81,84 @@ services:
     # php_latest_cli:
     #     image: manhphucofficial/php:latest-cli
     #     container_name: {{DEV_NAMESPACE}}_php_latest_cli
+    # ============================================================================
+    # Python Services
+    # ============================================================================
+    python310_web:
+        image: manhphucofficial/python:3.10-web
+        container_name: ${DEV_NAMESPACE}_python310_web
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    python311_web:
+        image: manhphucofficial/python:3.11-web
+        container_name: ${DEV_NAMESPACE}_python311_web
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    python312_web:
+        image: manhphucofficial/python:3.12-web
+        container_name: ${DEV_NAMESPACE}_python312_web
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    python_latest_web:
+        image: manhphucofficial/python:latest-web
+        container_name: ${DEV_NAMESPACE}_python_latest_web
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+    # ============================================================================
+    # Database Services
+    # ============================================================================
     mariadb:
-        image: mariadb
+        image: mariadb:${MARIADB_TAG}
         environment:
             - MYSQL_DATABASE=${MYSQL_DATABASE}
             - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
             - MYSQL_USER=${MYSQL_USER}
             - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+        ports:
+            - "${MYSQL_EXPOSING_PORT}:3306"
         volumes:
             # - ./mariadb-init:/docker-entrypoint-initdb.d # Place init .sql file(s) here.
             # - /path/to/mariadb/data/on/host:/var/lib/mysql # I want to manage volumes manually.
@@ -70,6 +167,9 @@ services:
               target: /var/lib/mysql
         networks:
             - {{DEV_NAMESPACE}}
+    # ============================================================================
+    # Admin Tools
+    # ============================================================================
     adminer:
         image: adminer:4.7.7
         volumes:

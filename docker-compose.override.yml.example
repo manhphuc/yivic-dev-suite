@@ -1,0 +1,371 @@
+version: "3.8"
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+    {{DEV_NAMESPACE}}:
+        name: {{DEV_NAMESPACE}}_default
+        driver: bridge
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+    mariadb-data:
+        driver: local
+        name: {{DEV_NAMESPACE}}_mariadb_data
+    es-data:
+        driver: local
+        name: {{DEV_NAMESPACE}}_elasticsearch_data
+
+# ==============================================================================
+# Services
+# ==============================================================================
+services:
+    # ==========================================================================
+    # Nginx - Web Server
+    # ==========================================================================
+    nginx_main:
+        image: manhphucofficial/nginx:${NGINX_VERSION}-alpine-custom
+        container_name: {{DEV_NAMESPACE}}_nginx_main
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared:ro"
+            - "./etc/nginx:/etc/nginx/conf.d:ro"
+            - "./etc/ssl:/etc/ssl:ro"
+            - "${WWW_DIR}:/var/www/html"
+            - "${NGINX_LOG_DIR}:/var/log/nginx"
+        ports:
+            - "${NGINX_HTTP_EXPOSING_PORT}:80"
+            - "${NGINX_HTTPS_EXPOSING_PORT}:443"
+        environment:
+            - NGINX_HOST=${NGINX_HOST}
+        networks:
+            - {{DEV_NAMESPACE}}
+        depends_on:
+            - php72_fpm
+            - php82_web
+            - php_latest_fpm
+
+    # ==========================================================================
+    # PHP 7.2 - FPM
+    # ==========================================================================
+    php72_fpm:
+        image: manhphucofficial/php:7.2-fpm
+        container_name: {{DEV_NAMESPACE}}_php72_fpm
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "./etc/php72/php-custom.ini:/etc/php/7.2/fpm/conf.d/php-custom.ini:ro"
+        environment:
+            - PHP_UPLOAD_MAX_FILESIZE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=256M
+            - PHP_MAX_EXECUTION_TIME=300
+            - PHP_MAX_INPUT_TIME=300
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # PHP 8.2 - Web (FPM + Nginx)
+    # ==========================================================================
+    php82_web:
+        image: manhphucofficial/php82_web
+        container_name: {{DEV_NAMESPACE}}_php82_web
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "./etc/php82/php-custom.ini:/etc/php/8.2/fpm/conf.d/php-custom.ini:ro"
+            - "./etc/ssl/dev-srv.org.key:/etc/nginx/certs/dev-srv.org.key:ro"
+            - "./etc/ssl/dev-srv.org.bundle.crt:/etc/nginx/certs/dev-srv.org.crt:ro"
+        environment:
+            - PHP_UPLOAD_MAX_FILESIZE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=256M
+            - PHP_MAX_EXECUTION_TIME=300
+            - PHP_MAX_INPUT_TIME=300
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # PHP Latest - FPM
+    # ==========================================================================
+    php_latest_fpm:
+        image: manhphucofficial/php:latest-fpm
+        container_name: {{DEV_NAMESPACE}}_php_latest_fpm
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "./etc/php-latest/php-custom.ini:/etc/php/7.4/fpm/conf.d/php-custom.ini:ro"
+            - "./etc/ssl/dev-srv.org.key:/etc/nginx/certs/dev-srv.org.key:ro"
+            - "./etc/ssl/dev-srv.org.bundle.crt:/etc/nginx/certs/dev-srv.org.crt:ro"
+        environment:
+            - PHP_UPLOAD_MAX_FILESIZE=256M
+            - PHP_POST_MAX_SIZE=256M
+            - PHP_MEMORY_LIMIT=256M
+            - PHP_MAX_EXECUTION_TIME=300
+            - PHP_MAX_INPUT_TIME=300
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # Python 3.10 - Web
+    # ==========================================================================
+    python310_web:
+        image: manhphucofficial/python:3.10-web
+        container_name: {{DEV_NAMESPACE}}_python310_web
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - PIP_NO_CACHE_DIR=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # Python 3.11 - Web
+    # ==========================================================================
+    python311_web:
+        image: manhphucofficial/python:3.11-web
+        container_name: {{DEV_NAMESPACE}}_python311_web
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - PIP_NO_CACHE_DIR=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # Python 3.12 - Web
+    # ==========================================================================
+    python312_web:
+        image: manhphucofficial/python:3.12-web
+        container_name: {{DEV_NAMESPACE}}_python312_web
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - PIP_NO_CACHE_DIR=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # Python Latest - Web
+    # ==========================================================================
+    python_latest_web:
+        image: manhphucofficial/python:latest-web
+        container_name: {{DEV_NAMESPACE}}_python_latest_web
+        restart: unless-stopped
+        volumes:
+            - "./shared:/shared"
+            - "${WWW_DIR}:/var/www/html"
+            - "${PYTHON_LOG_DIR}:/var/log/python"
+        environment:
+            - PYTHONUNBUFFERED=1
+            - PYTHONDONTWRITEBYTECODE=1
+            - PIP_NO_CACHE_DIR=1
+            - TZ=Asia/Ho_Chi_Minh
+        working_dir: /var/www/html
+        command: tail -f /dev/null
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # MariaDB - MySQL Compatible Database
+    # ==========================================================================
+    mariadb:
+        image: mariadb:${MARIADB_TAG}
+        container_name: {{DEV_NAMESPACE}}_mariadb
+        restart: unless-stopped
+        environment:
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+            - TZ=Asia/Ho_Chi_Minh
+        ports:
+            - "${MYSQL_EXPOSING_PORT}:3306"
+        volumes:
+            - mariadb-data:/var/lib/mysql
+            # - ./mariadb-init:/docker-entrypoint-initdb.d:ro
+        command: >
+            --character-set-server=utf8mb4
+            --collation-server=utf8mb4_unicode_ci
+            --max_allowed_packet=256M
+            --innodb_buffer_pool_size=512M
+        networks:
+            - {{DEV_NAMESPACE}}
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # ==========================================================================
+    # Adminer - Lightweight Database Management
+    # ==========================================================================
+    adminer:
+        image: adminer:4.8.1
+        container_name: {{DEV_NAMESPACE}}_adminer
+        restart: unless-stopped
+        volumes:
+            - "./etc/adminer/0-upload_large_dumps.ini:/usr/local/etc/php/conf.d/0-upload_large_dumps.ini:ro"
+        ports:
+            - "${ADMINIER_WEB_EXPOSING_PORT}:8080"
+        environment:
+            - ADMINER_DESIGN=nette
+            - ADMINER_DEFAULT_SERVER=mariadb
+        networks:
+            - {{DEV_NAMESPACE}}
+        depends_on:
+            - mariadb
+
+    # ==========================================================================
+    # PhpMyAdmin - Full Featured Database Management
+    # ==========================================================================
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin:latest
+        container_name: {{DEV_NAMESPACE}}_phpmyadmin
+        restart: unless-stopped
+        ports:
+            - "${PHPMYADMIN_WEB_EXPOSING_PORT}:80"
+        environment:
+            - PMA_ARBITRARY=1
+            - PMA_HOST=mariadb
+            - PHP_UPLOAD_MAX_FILESIZE=1G
+            - PHP_POST_MAX_SIZE=1G
+            - PHP_MEMORY_LIMIT=512M
+            - PHPMYADMIN_ALLOW_ARBITRARY_SERVER=yes
+            - PHP_MAX_INPUT_VARS=10000
+            - UPLOAD_LIMIT=1G
+        networks:
+            - {{DEV_NAMESPACE}}
+        depends_on:
+            - mariadb
+
+    # ==========================================================================
+    # SSDB - Redis Alternative (SSD Optimized)
+    # ==========================================================================
+    ssdb:
+        image: benyoo/ssdb
+        container_name: {{DEV_NAMESPACE}}_ssdb
+        restart: unless-stopped
+        volumes:
+            - "./etc/ssdb/ssdb.conf:/etc/ssdb.conf:ro"
+        networks:
+            - {{DEV_NAMESPACE}}
+
+    # ==========================================================================
+    # PHP SSDB Admin - SSDB Web Interface
+    # ==========================================================================
+    phpssdbadmin:
+        build:
+            context: "./build/phpssdbadmin"
+        container_name: {{DEV_NAMESPACE}}_phpssdbadmin
+        restart: unless-stopped
+        ports:
+            - "${PHPSSDBADMIN_WEB_EXPOSING_PORT}:80"
+        networks:
+            - {{DEV_NAMESPACE}}
+        depends_on:
+            - ssdb
+
+    # ==========================================================================
+    # Redis - In-Memory Data Store
+    # ==========================================================================
+    redis:
+        image: redis:7-alpine
+        container_name: {{DEV_NAMESPACE}}_redis
+        restart: unless-stopped
+        ports:
+            - "${REDIS_EXPOSING_PORT}:6379"
+        volumes:
+            - "./etc/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+        command: redis-server /usr/local/etc/redis/redis.conf
+        networks:
+            - {{DEV_NAMESPACE}}
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+
+    # ==========================================================================
+    # PHP Redis Admin - Redis Web Interface
+    # ==========================================================================
+    phpredisadmin:
+        image: erikdubbelboer/phpredisadmin:latest
+        container_name: {{DEV_NAMESPACE}}_phpredisadmin
+        restart: unless-stopped
+        ports:
+            - "${PHPREDISADMIN_WEB_EXPOSING_PORT}:80"
+        environment:
+            - ADMIN_USER=${REDIS_ADMIN_USER}
+            - ADMIN_PASS=${REDIS_ADMIN_PASS}
+            - REDIS_1_HOST=redis
+            - REDIS_1_PORT=6379
+        networks:
+            - {{DEV_NAMESPACE}}
+        depends_on:
+            - redis
+
+    # ==========================================================================
+    # Elasticsearch - Search and Analytics Engine
+    # ==========================================================================
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        container_name: {{DEV_NAMESPACE}}_elasticsearch
+        restart: unless-stopped
+        environment:
+            - node.name=es-node-1
+            - cluster.name=yivic-dev-cluster
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+            - xpack.security.enabled=false
+            - TZ=Asia/Ho_Chi_Minh
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+            nofile:
+                soft: 65536
+                hard: 65536
+        volumes:
+            - es-data:/usr/share/elasticsearch/data
+        ports:
+            - "${ELASTICSEARCH_PORT:-9200}:9200"
+            - "${ELASTICSEARCH_CLUSTER_PORT:-9300}:9300"
+        networks:
+            - {{DEV_NAMESPACE}}
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://127.0.0.1:9200/_cluster/health || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 5

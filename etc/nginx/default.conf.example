@@ -1,5 +1,8 @@
 # Nginx configuration
 
+# Docker DNS resolver for lazy resolution
+resolver 127.0.0.11 valid=10s ipv6=off;
+
 #Adjust client timeouts
 client_max_body_size 0;
 client_body_buffer_size 1k;
@@ -30,8 +33,11 @@ map $host $global_local_php_document_root {
   default /Users/<username>/workspace/www;
 }
 
+# ------------------------------------------------------------------------------
+# PHP upstreams
+# ------------------------------------------------------------------------------
 upstream docker_php {
-    server php72_fpm:9000;
+    server php82_web:9000;
 }
 
 upstream local_php56 {
@@ -50,46 +56,36 @@ upstream backend_php {
     server php_latest_fpm:9000;
 }
 
+# ────────────────────────────────────────────────
+# HTTP redirect to HTTPS for *.dev-srv.org
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
-
-    index index.php index.html;
-    error_log  /var/log/nginx/error.log;
-    access_log /var/log/nginx/access.log;
-    root /var/www/html;
-    set $php_fpm_document_root $global_php_document_root;
-
-    location / {
-        autoindex on;
-    }
-
-    location ~ \.php$ {
-        try_files $uri =404;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass backend_php;
-        fastcgi_index index.php;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $php_fpm_document_root$fastcgi_script_name;
-        fastcgi_param PATH_INFO $fastcgi_path_info;
-    }
+    server_name ~^(?<subdomain>.+)\.dev-srv\.org$;
+    return 301 https://$host$request_uri;
 }
 
+# ────────────────────────────────────────────────
+# HTTPS block for wildcard *.dev-srv.org
 server {
-    listen 443 ssl;
-    server_name _;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name ~^(?<subdomain>.+)\.dev-srv\.org$;
     fastcgi_param HTTPS on;
 
-    ssl_certificate /etc/ssl/ca.pem;
-    ssl_certificate_key /etc/ssl/ca-key.pem;
-    ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
+    ssl_certificate     /etc/ssl/dev-srv.org.bundle.crt;
+    ssl_certificate_key /etc/ssl/dev-srv.org.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Dynamic root/log per subdomain
+    root /var/www/html/$subdomain;
+    set $php_fpm_document_root $global_php_document_root/$subdomain;
 
     index index.php index.html;
-    error_log  /var/log/nginx/error.log;
-    access_log /var/log/nginx/access.log;
-    root /var/www/html;
-    set $php_fpm_document_root $global_php_document_root;
+
+    error_log  /var/log/nginx/$subdomain-error.log;
+    access_log /var/log/nginx/$subdomain-access.log;
 
     add_header X-SCRIPT_FILENAME SCRIPT_FILENAME;
     add_header X-fastcgi_script_name $fastcgi_script_name;
@@ -97,12 +93,13 @@ server {
 
     location / {
         autoindex on;
+        try_files $uri $uri/ =404;
     }
 
     location ~ \.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass backend_php;
+        fastcgi_pass docker_php;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $php_fpm_document_root$fastcgi_script_name;
@@ -110,4 +107,6 @@ server {
     }
 }
 
+# ────────────────────────────────────────────────
+# Include custom sites if any
 include /etc/nginx/conf.d/sites-enabled/*.conf;
