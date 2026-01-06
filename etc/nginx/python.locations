@@ -1,0 +1,126 @@
+# ============================================================================
+# Python Application Proxy Configuration with Lazy DNS Resolution
+# ============================================================================
+# This config uses variables instead of upstream blocks to avoid
+# "host not found" errors when Python containers aren't running yet.
+# DNS is resolved ONLY when the location is actually accessed.
+#
+# USAGE: Set $python_version variable in your site config before including this file
+# Example: set $python_version "python312_web";
+# ============================================================================
+
+# Main application proxy
+location / {
+    # Lazy DNS resolution - only resolve when accessed, not at startup
+    # Uses $python_version variable set in site config
+    set $backend "$python_version:8000";
+    proxy_pass http://$backend;
+
+    proxy_http_version 1.1;
+
+    # Headers for proxying
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+
+    # WebSocket support (for FastAPI, Django Channels, Socket.io)
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # Timeouts
+    proxy_connect_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_read_timeout 600s;
+
+    # Buffering
+    proxy_buffering off;
+    proxy_request_buffering off;
+}
+
+# Static files (FastAPI/Flask/Django static files)
+location /static/ {
+    alias /var/www/html/$subdomain/static/;
+    expires 30d;
+    access_log off;
+    add_header Cache-Control "public, immutable";
+}
+
+# Media files (user uploads)
+location /media/ {
+    alias /var/www/html/$subdomain/media/;
+    expires 7d;
+    access_log off;
+}
+
+# FastAPI/Django admin static files
+location /admin/static/ {
+    alias /var/www/html/$subdomain/static/admin/;
+    expires 30d;
+    access_log off;
+}
+
+# Health check endpoint
+location /health {
+    set $backend "$python_version:8000";
+    proxy_pass http://$backend/health;
+    access_log off;
+}
+
+# API documentation (FastAPI auto-docs)
+location /docs {
+    set $backend "$python_version:8000";
+    proxy_pass http://$backend/docs;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+location /redoc {
+    set $backend "$python_version:8000";
+    proxy_pass http://$backend/redoc;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+location /openapi.json {
+    set $backend "$python_version:8000";
+    proxy_pass http://$backend/openapi.json;
+    proxy_set_header Host $host;
+}
+
+# Favicon
+location = /favicon.ico {
+    log_not_found off;
+    access_log off;
+    expires max;
+}
+
+# Robots.txt
+location = /robots.txt {
+    allow all;
+    log_not_found off;
+    access_log off;
+}
+
+# Deny access to hidden files
+location ~ /\. {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+# Deny access to Python source files (security)
+location ~* \.(py|pyc|pyo|pyd|pyw|pyz)$ {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+# Deny access to sensitive files
+location ~* (requirements\.txt|Pipfile|\.env|\.git|\.venv|__pycache__|\.pytest_cache)$ {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
